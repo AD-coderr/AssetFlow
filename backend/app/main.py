@@ -1,6 +1,7 @@
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 
-from app.database.database import engine, Base
+from app.database.database import BACKEND_DIR, engine, Base
 from app.models.user import User
 from app.models.asset import Asset
 from app.models.employee import Employee
@@ -18,6 +19,14 @@ app.include_router(asset_router)
 app.include_router(employee_router)
 
 
+FRONTEND_DIR = BACKEND_DIR.parent / "frontend"
+
+
 @app.get("/")
 def root():
     return {"message": "AssetFlow API Running"}
+
+
+# Web UI: frontend/ served at /ui (same origin as the API, so no CORS needed).
+if FRONTEND_DIR.is_dir():
+    app.mount("/ui", StaticFiles(directory=FRONTEND_DIR, html=True), name="ui")

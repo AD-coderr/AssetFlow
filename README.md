@@ -12,7 +12,8 @@ pip install -r requirements-dev.txt
 uvicorn app.main:app --reload
 ```
 
-Interactive docs: http://127.0.0.1:8000/docs
+- Web UI: http://127.0.0.1:8000/ui/ (served from `frontend/`; plain HTML/CSS/JS with no build step, and it follows the system's light/dark setting)
+- Interactive API docs: http://127.0.0.1:8000/docs
 
 The SQLite database is created at `backend/assetflow.db`. Set `ASSETFLOW_DATABASE_URL` to use a different database.
 

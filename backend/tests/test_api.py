@@ -57,3 +57,10 @@ def test_employee_crud_and_conflict():
 def test_users_never_expose_password_hash():
     for user in client.get("/users").json():
         assert "password_hash" not in user
+
+
+def test_web_ui_is_served():
+    r = client.get("/ui/")
+    assert r.status_code == 200
+    assert "<title>AssetFlow</title>" in r.text
+    assert client.get("/ui/app.js").status_code == 200
