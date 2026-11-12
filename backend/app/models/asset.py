@@ -1,4 +1,5 @@
 from sqlalchemy import Column, Integer, String
+from sqlalchemy.orm import relationship
 from app.database.database import Base
 
 
@@ -20,3 +21,21 @@ class Asset(Base):
     status = Column(String, default="AVAILABLE")
 
     location = Column(String)
+
+    assignments = relationship(
+        "Assignment",
+        back_populates="asset",
+        cascade="all, delete-orphan",
+        order_by="Assignment.assigned_at.desc()",
+        lazy="selectin",
+    )
+
+    @property
+    def current_assignment(self):
+        return next((a for a in self.assignments if a.returned_at is None), None)
+
+    @property
+    def assigned_to(self):
+        """The employee currently holding this asset, if any."""
+        current = self.current_assignment
+        return current.employee if current else None

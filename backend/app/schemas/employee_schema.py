@@ -2,6 +2,8 @@ from typing import Optional
 
 from pydantic import BaseModel, ConfigDict
 
+from app.schemas.common import AssetBrief
+
 
 class EmployeeBase(BaseModel):
     first_name: str
@@ -23,6 +25,7 @@ class EmployeeRead(EmployeeBase):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
+    assets: list[AssetBrief] = []
 
 
 class EmployeeResponse(BaseModel):

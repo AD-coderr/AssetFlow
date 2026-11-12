@@ -70,6 +70,62 @@
     </form>
   </dialog>
 
+  <dialog id="assign-dialog">
+    <form id="assign-form" novalidate>
+      <div class="dialog-head">
+        <div>
+          <h2 id="assign-title">Assign asset</h2>
+          <p id="assign-subtitle" class="muted small dialog-sub"></p>
+        </div>
+        <button type="button" class="icon-btn" data-close aria-label="Close">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+        </button>
+      </div>
+      <div class="fields">
+        <div class="field full">
+          <label for="assign-employee">Employee<span class="req">*</span></label>
+          <select id="assign-employee"></select>
+        </div>
+        <div class="field full">
+          <label for="assign-notes">Notes</label>
+          <input id="assign-notes" type="text" placeholder="Optional, e.g. New hire laptop" autocomplete="off">
+        </div>
+      </div>
+      <p id="assign-error" class="form-error" hidden></p>
+      <div class="dialog-foot">
+        <button type="button" class="btn" data-close>Cancel</button>
+        <button type="submit" class="btn btn-primary" id="assign-btn">Assign</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="history-dialog">
+    <div class="dialog-head">
+      <div>
+        <h2 id="history-title">History</h2>
+        <p id="history-subtitle" class="muted small dialog-sub"></p>
+      </div>
+      <button type="button" class="icon-btn" data-close aria-label="Close">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+    <div id="history-body" class="history"></div>
+    <div class="dialog-foot">
+      <button type="button" class="btn" data-close>Close</button>
+    </div>
+  </dialog>
+
+  <dialog id="confirm-dialog" class="confirm">
+    <div class="dialog-head">
+      <h2 id="confirm-title">Are you sure?</h2>
+    </div>
+    <p id="confirm-message" class="confirm-message muted"></p>
+    <div class="dialog-foot">
+      <button type="button" class="btn" id="confirm-cancel">Cancel</button>
+      <button type="button" class="btn btn-primary" id="confirm-ok">Confirm</button>
+    </div>
+  </dialog>
+
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
   <script src="app.js"></script>

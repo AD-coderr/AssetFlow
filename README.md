@@ -10,6 +10,8 @@ It's a FastAPI + SQLAlchemy backend with a clean, dependency-free web UI.
 
 ![Assets view](docs/screenshots/assets-light.jpg)
 
+![Assignment history for an asset](docs/screenshots/assignment-history.jpg)
+
 <details>
 <summary>Dark mode &amp; add-asset dialog</summary>
 
@@ -20,6 +22,8 @@ It's a FastAPI + SQLAlchemy backend with a clean, dependency-free web UI.
 
 - **Assets** — create, edit, delete and search devices with tag, type, brand, model, serial number, location and status (Available, Assigned, In repair, Retired)
 - **Employees** — manage the people assets get assigned to
+- **Assignments** — check an asset out to an employee and back in, with a full history per asset and per employee
+- **Business rules** — only available assets can be assigned; an assigned asset must be returned before it can be retired, deleted or re-assigned; an employee holding assets can't be deleted
 - **Dashboard stats** — totals and status counts at a glance
 - **Validation** — required fields checked in the UI and API; duplicate asset tags, serial numbers or emails return `409 Conflict`
 - **Light & dark mode**, responsive down to phone widths
@@ -58,6 +62,7 @@ The SQLite database is created automatically at `backend/assetflow.db`.
 |-----------|-----------|
 | Assets    | `GET/POST /assets`, `GET/PUT/DELETE /assets/{id}` |
 | Employees | `GET/POST /employees`, `GET/PUT/DELETE /employees/{id}` |
+| Assignments | `POST /assets/{id}/assign`, `POST /assets/{id}/return`, `GET /assets/{id}/assignments`, `GET /employees/{id}/assignments`, `GET /assignments?active=true` |
 | Users     | `GET /users` (read-only; never returns password hashes) |
 
 ## Project structure
@@ -84,7 +89,7 @@ pytest
 
 ## Roadmap
 
-- [ ] Assign assets to employees (check-out / check-in history)
+- [x] Assign assets to employees (check-out / check-in history)
 - [ ] Authentication and roles
 - [ ] CSV import / export
 - [ ] Docker setup

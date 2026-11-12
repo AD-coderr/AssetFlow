@@ -66,6 +66,12 @@ def update_employee(employee_id: int, updated: EmployeeUpdate, db: Session = Dep
 def delete_employee(employee_id: int, db: Session = Depends(get_db)):
     employee = _get_employee_or_404(db, employee_id)
 
+    if employee.assets:
+        raise HTTPException(
+            status_code=409,
+            detail="Employee still holds assets; return them before deleting",
+        )
+
     db.delete(employee)
     db.commit()
 

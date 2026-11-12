@@ -2,6 +2,8 @@ from typing import Optional
 
 from pydantic import BaseModel, ConfigDict
 
+from app.schemas.common import EmployeeBrief
+
 
 class AssetBase(BaseModel):
     asset_tag: str
@@ -25,6 +27,7 @@ class AssetRead(AssetBase):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
+    assigned_to: Optional[EmployeeBrief] = None
 
 
 class AssetResponse(BaseModel):

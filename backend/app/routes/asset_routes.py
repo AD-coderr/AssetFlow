@@ -38,6 +38,12 @@ def get_asset(asset_id: int, db: Session = Depends(get_db)):
 
 @router.post("/assets", response_model=AssetResponse, status_code=201)
 def create_asset(asset: AssetCreate, db: Session = Depends(get_db)):
+    if asset.status == "ASSIGNED":
+        raise HTTPException(
+            status_code=409,
+            detail="Create the asset first, then assign it to an employee",
+        )
+
     new_asset = Asset(**asset.model_dump())
     db.add(new_asset)
     _commit_or_409(db)
@@ -49,6 +55,21 @@ def create_asset(asset: AssetCreate, db: Session = Depends(get_db)):
 @router.put("/assets/{asset_id}", response_model=AssetResponse)
 def update_asset(asset_id: int, updated_asset: AssetUpdate, db: Session = Depends(get_db)):
     asset = _get_asset_or_404(db, asset_id)
+
+    # Status and assignments must stay in sync: "ASSIGNED" is only ever set by
+    # assigning the asset, and an assigned asset must be returned before its
+    # status can change.
+    if updated_asset.status != asset.status:
+        if asset.current_assignment is not None:
+            raise HTTPException(
+                status_code=409,
+                detail="Asset is assigned; return it before changing its status",
+            )
+        if updated_asset.status == "ASSIGNED":
+            raise HTTPException(
+                status_code=409,
+                detail="Assign the asset to an employee to mark it as assigned",
+            )
 
     for field, value in updated_asset.model_dump().items():
         setattr(asset, field, value)
@@ -62,6 +83,12 @@ def update_asset(asset_id: int, updated_asset: AssetUpdate, db: Session = Depend
 @router.delete("/assets/{asset_id}")
 def delete_asset(asset_id: int, db: Session = Depends(get_db)):
     asset = _get_asset_or_404(db, asset_id)
+
+    if asset.current_assignment is not None:
+        raise HTTPException(
+            status_code=409,
+            detail="Asset is assigned; return it before deleting it",
+        )
 
     db.delete(asset)
     db.commit()
