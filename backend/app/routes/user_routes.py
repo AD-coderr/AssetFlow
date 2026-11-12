@@ -1,15 +1,13 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
+from sqlalchemy.orm import Session
 
-router = APIRouter()
+from app.database.database import get_db
+from app.models.user import User
+from app.schemas.user_schema import UserRead
+
+router = APIRouter(tags=["users"])
 
 
-@router.get("/users")
-def get_users():
-    return [
-        {
-            "id": 1,
-            "username": "alonso",
-            "email": "alonso@example.com",
-            "role": "ADMIN"
-        }
-    ]
+@router.get("/users", response_model=list[UserRead])
+def get_users(db: Session = Depends(get_db)):
+    return db.query(User).all()

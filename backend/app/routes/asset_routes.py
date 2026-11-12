@@ -1,156 +1,69 @@
-from fastapi import APIRouter, HTTPException
-from app.schemas.asset_schema import AssetCreate, AssetUpdate
-from app.database.database import SessionLocal
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import Session
+
+from app.database.database import get_db
 from app.models.asset import Asset
+from app.schemas.asset_schema import AssetCreate, AssetRead, AssetResponse, AssetUpdate
 
-router = APIRouter()
+router = APIRouter(tags=["assets"])
 
-
-@router.get("/assets")
-def get_assets():
-    db = SessionLocal()
-
-    assets = db.query(Asset).all()
-
-    db.close()
-
-    return assets
+CONFLICT_DETAIL = "An asset with this asset_tag or serial_number already exists"
 
 
-@router.get("/assets/{asset_id}")
-def get_asset(asset_id: int):
-    db = SessionLocal()
-
-    asset = db.query(Asset).filter(Asset.id == asset_id).first()
-
-    db.close()
-
+def _get_asset_or_404(db: Session, asset_id: int) -> Asset:
+    asset = db.get(Asset, asset_id)
     if asset is None:
         raise HTTPException(status_code=404, detail="Asset not found")
-
     return asset
 
 
-@router.put("/assets/{asset_id}")
-def update_asset(asset_id: int, updated_asset: AssetUpdate):
-    db = SessionLocal()
+def _commit_or_409(db: Session) -> None:
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=409, detail=CONFLICT_DETAIL)
 
-    asset = db.query(Asset).filter(Asset.id == asset_id).first()
 
-    if asset is None:
-        db.close()
-        raise HTTPException(status_code=404, detail="Asset not found")
+@router.get("/assets", response_model=list[AssetRead])
+def get_assets(db: Session = Depends(get_db)):
+    return db.query(Asset).all()
 
-    asset.asset_tag = updated_asset.asset_tag
-    asset.asset_type = updated_asset.asset_type
-    asset.brand = updated_asset.brand
-    asset.model = updated_asset.model
 
-    db.commit()
+@router.get("/assets/{asset_id}", response_model=AssetRead)
+def get_asset(asset_id: int, db: Session = Depends(get_db)):
+    return _get_asset_or_404(db, asset_id)
+
+
+@router.post("/assets", response_model=AssetResponse, status_code=201)
+def create_asset(asset: AssetCreate, db: Session = Depends(get_db)):
+    new_asset = Asset(**asset.model_dump())
+    db.add(new_asset)
+    _commit_or_409(db)
+    db.refresh(new_asset)
+
+    return {"message": "Asset created successfully", "asset": new_asset}
+
+
+@router.put("/assets/{asset_id}", response_model=AssetResponse)
+def update_asset(asset_id: int, updated_asset: AssetUpdate, db: Session = Depends(get_db)):
+    asset = _get_asset_or_404(db, asset_id)
+
+    for field, value in updated_asset.model_dump().items():
+        setattr(asset, field, value)
+
+    _commit_or_409(db)
     db.refresh(asset)
 
-    db.close()
-
-    return {
-        "message": "Asset updated successfully",
-        "asset": asset
-    }
-from fastapi import APIRouter, HTTPException
-from app.schemas.asset_schema import AssetCreate, AssetUpdate
-from app.database.database import SessionLocal
-from app.models.asset import Asset
-
-router = APIRouter()
-
-
-@router.get("/assets")
-def get_assets():
-    db = SessionLocal()
-
-    assets = db.query(Asset).all()
-
-    db.close()
-
-    return assets
-
-
-@router.get("/assets/{asset_id}")
-def get_asset(asset_id: int):
-    db = SessionLocal()
-
-    asset = db.query(Asset).filter(Asset.id == asset_id).first()
-
-    db.close()
-
-    if asset is None:
-        raise HTTPException(status_code=404, detail="Asset not found")
-
-    return asset
-
-
-@router.put("/assets/{asset_id}")
-def update_asset(asset_id: int, updated_asset: AssetUpdate):
-    db = SessionLocal()
-
-    asset = db.query(Asset).filter(Asset.id == asset_id).first()
-
-    if asset is None:
-        db.close()
-        raise HTTPException(status_code=404, detail="Asset not found")
-
-    asset.asset_tag = updated_asset.asset_tag
-    asset.asset_type = updated_asset.asset_type
-    asset.brand = updated_asset.brand
-    asset.model = updated_asset.model
-
-    db.commit()
-    db.refresh(asset)
-
-    db.close()
-
-    return {
-        "message": "Asset updated successfully",
-        "asset": asset
-    }
+    return {"message": "Asset updated successfully", "asset": asset}
 
 
 @router.delete("/assets/{asset_id}")
-def delete_asset(asset_id: int):
-    db = SessionLocal()
-
-    asset = db.query(Asset).filter(Asset.id == asset_id).first()
-
-    if asset is None:
-        db.close()
-        raise HTTPException(status_code=404, detail="Asset not found")
+def delete_asset(asset_id: int, db: Session = Depends(get_db)):
+    asset = _get_asset_or_404(db, asset_id)
 
     db.delete(asset)
     db.commit()
 
-    db.close()
-
-    return {
-        "message": "Asset deleted successfully"
-    }
-
-@router.post("/assets")
-def create_asset(asset: AssetCreate):
-    db = SessionLocal()
-
-    new_asset = Asset(
-        asset_tag=asset.asset_tag,
-        asset_type=asset.asset_type,
-        brand=asset.brand,
-        model=asset.model
-    )
-
-    db.add(new_asset)
-    db.commit()
-    db.refresh(new_asset)
-
-    db.close()
-
-    return {
-        "message": "Asset created successfully",
-        "asset": new_asset
-    }
+    return {"message": "Asset deleted successfully"}
