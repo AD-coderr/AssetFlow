@@ -43,6 +43,16 @@
         </div>
         <span id="count" class="muted small"></span>
       </div>
+      <form id="ai-bar" class="ai-bar" hidden novalidate>
+        <div class="ai-row">
+          <div class="search ai-search">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></svg>
+            <input id="ai-input" type="text" maxlength="300" autocomplete="off" aria-label="Ask AI about your assets">
+          </div>
+          <button id="ai-btn" class="btn" type="submit">Ask AI</button>
+        </div>
+        <div id="ai-result" class="ai-result" hidden></div>
+      </form>
       <div class="table-wrap">
         <table>
           <thead id="thead"></thead>

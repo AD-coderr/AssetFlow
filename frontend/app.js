@@ -173,6 +173,77 @@ function askConfirm({ title, message, okLabel = "Confirm", danger = false }) {
 
 const cfg = () => RESOURCES[state.view];
 
+// AI search: the backend turns a question into a filter and returns the
+// matching assets; the table is then narrowed to those ids.
+const ai = { enabled: false, result: null };
+const AI_FILTER_LABELS = {
+  status: "Status",
+  asset_type: "Type",
+  brand: "Brand",
+  model: "Model",
+  location: "Location",
+  assigned_to: "Assigned to",
+  department: "Department",
+  text: "Text",
+};
+
+function renderAiBar() {
+  $("ai-bar").hidden = state.view !== "assets";
+  $("ai-input").disabled = $("ai-btn").disabled = !ai.enabled;
+  $("ai-input").placeholder = ai.enabled
+    ? "Ask in plain language, e.g. “free laptops at HQ”"
+    : "AI search is off. See the README to enable it.";
+  const box = $("ai-result");
+  box.hidden = !ai.result;
+  if (!ai.result) return;
+  const chips = Object.entries(ai.result.filters)
+    .filter(([key, value]) => value && AI_FILTER_LABELS[key])
+    .map(([key, value]) => `<span class="ai-chip">${esc(AI_FILTER_LABELS[key])}: ${esc(key === "status" ? statusLabel(value) : value)}</span>`)
+    .join("");
+  box.innerHTML = `<span class="ai-summary">${esc(ai.result.question)}</span>${chips}<button type="button" class="link-btn" id="ai-clear">Clear</button>`;
+}
+
+async function initAi() {
+  try {
+    ai.enabled = (await api("/ai/status")).enabled;
+  } catch {
+    ai.enabled = false;
+  }
+  renderAiBar();
+}
+
+async function submitAi(event) {
+  event.preventDefault();
+  const question = $("ai-input").value.trim();
+  if (!question || !ai.enabled) return;
+  const btn = $("ai-btn");
+  btn.disabled = true;
+  btn.textContent = "Asking…";
+  try {
+    const res = await api("/ai/search", { method: "POST", body: JSON.stringify({ question }) });
+    const filters = res.filters || {};
+    if (!Object.values(filters).some(Boolean)) {
+      ai.result = null;
+      toast("Couldn't turn that into a filter. Try rephrasing it.", true);
+    } else {
+      ai.result = { question, filters, ids: new Set(res.assets.map((a) => a.id)) };
+    }
+  } catch (err) {
+    toast(err.message, true);
+  } finally {
+    btn.textContent = "Ask AI";
+    renderAiBar();
+    render();
+  }
+}
+
+function clearAi() {
+  ai.result = null;
+  $("ai-input").value = "";
+  renderAiBar();
+  render();
+}
+
 async function load() {
   try {
     state.items = await api(cfg().path);
@@ -187,6 +258,9 @@ function setView(view) {
   state.view = view;
   state.query = "";
   $("search").value = "";
+  ai.result = null;
+  $("ai-input").value = "";
+  renderAiBar();
   const c = cfg();
   document.querySelectorAll(".tab").forEach((t) => t.setAttribute("aria-selected", String(t.dataset.view === view)));
   $("page-title").textContent = c.title;
@@ -205,7 +279,9 @@ function render() {
     .join("");
 
   const q = state.query.trim().toLowerCase();
-  const rows = q ? state.items.filter((i) => c.searchText(i).toLowerCase().includes(q)) : state.items;
+  const aiActive = state.view === "assets" && ai.result;
+  const pool = aiActive ? state.items.filter((i) => ai.result.ids.has(i.id)) : state.items;
+  const rows = q ? pool.filter((i) => c.searchText(i).toLowerCase().includes(q)) : pool;
 
   $("thead").innerHTML = `<tr>${c.columns.map((col) => `<th>${esc(col.label)}</th>`).join("")}<th></th></tr>`;
   $("tbody").innerHTML = rows
@@ -227,9 +303,11 @@ function render() {
 
   const empty = $("empty");
   empty.hidden = rows.length > 0;
-  empty.innerHTML = state.items.length
-    ? `<strong>No matches</strong>Nothing matches “${esc(state.query)}”.`
-    : `<strong>No ${c.title.toLowerCase()} yet</strong>Click “Add ${c.singular}” to create the first one.`;
+  empty.innerHTML = !state.items.length
+    ? `<strong>No ${c.title.toLowerCase()} yet</strong>Click “Add ${c.singular}” to create the first one.`
+    : aiActive && !q
+      ? `<strong>No matches</strong>No assets match that question.`
+      : `<strong>No matches</strong>Nothing matches “${esc(state.query)}”.`;
   $("count").textContent = `${rows.length} of ${state.items.length}`;
 }
 
@@ -410,6 +488,10 @@ document.querySelectorAll(".tab").forEach((t) => t.addEventListener("click", () 
 $("add-btn").addEventListener("click", () => openForm());
 $("form").addEventListener("submit", submitForm);
 $("assign-form").addEventListener("submit", submitAssign);
+$("ai-bar").addEventListener("submit", submitAi);
+$("ai-result").addEventListener("click", (e) => {
+  if (e.target.closest("#ai-clear")) clearAi();
+});
 document.querySelectorAll("[data-close]").forEach((b) => b.addEventListener("click", () => b.closest("dialog").close()));
 $("search").addEventListener("input", (e) => {
   state.query = e.target.value;
@@ -432,3 +514,4 @@ $("tbody").addEventListener("click", (e) => {
 let initial = "assets";
 try { initial = localStorage.getItem("assetflow:view") || "assets"; } catch {}
 setView(RESOURCES[initial] ? initial : "assets");
+initAi();
